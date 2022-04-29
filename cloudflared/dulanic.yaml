@@ -1,0 +1,17 @@
+tunnel: 9d7aaf41-d581-4c47-b3c2-09632edca0ba
+credentials-file: /etc/cloudflared/9d7aaf41-d581-4c47-b3c2-09632edca0ba.json
+
+ingress:
+  - hostname: ssh.dulanic.com
+    service: ssh://192.168.2.155:22
+  - hostname: dulanic.com
+    service: https://192.168.2.155:443
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+  - hostname: "*.dulanic.com"
+    service: https://192.168.2.155:443
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+  - service: http_status:404

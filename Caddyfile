@@ -1,0 +1,404 @@
+###################
+# Global Settings #
+###################
+{
+	default_sni dulanic.com
+	order replace after encode
+}
+
+############
+# Snippets #
+############
+(proxyheaders) {
+	# 2022-04-25: https://www.cloudflare.com/ips-v4 & https://www.cloudflare.com/ips-v6
+	trusted_proxies private_ranges 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+	flush_interval -1
+	header_up X-Real-IP {http.request.header.CF-Connecting-IP}
+}
+(headers) {
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Content-Security-Policy "upgrade-insecure-requests"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+(main) {
+	tls {$ACMEEMAIL} {
+		ca https://acme-v02.api.letsencrypt.org/directory
+		dns cloudflare {$CLOUDFLARE_API_TOKEN}
+		resolvers 1.0.0.1
+	}
+	log {
+		output file /data/logs/access.log {
+			roll_size 100MiB
+			roll_keep 10
+			roll_keep_for 168h
+		}
+		format filter {
+			wrap json
+			fields {
+				common_log delete
+				request>tls delete
+			}
+		}
+		level error
+	}
+	respond /robots.txt 200 {
+		body "User-agent: *
+Disallow: /
+
+User-agent: AdsBot-Google
+Disallow: /
+
+User-agent: AdsBot-Google-Mobile
+Disallow: /"
+		close
+	}
+}
+
+import subsites
+
+###############
+# dulanic.com #
+###############
+https://dulanic.com {
+	import main
+	import headers
+	root * /www/websites/dulanic.com
+	file_server
+	redir /img /img/
+	handle_path /img/* {
+		root * /www/img
+		file_server
+	}
+	redir /files /files/
+	handle_path /files/* {
+		root * /www/files
+		file_server
+	}
+	redir /vid /vid/
+	handle_path /vid/* {
+		root * /www/vid
+		file_server
+	}
+	redir /icons /icons/
+	handle_path /icons/* {
+		root * /www/icons
+		file_server
+	}
+	redir /css /css/
+	handle_path /css/* {
+		root * /www/css
+		file_server
+	}
+}
+
+https://code.dulanic.com {
+	import main
+	import headers
+	reverse_proxy openvscode-server:3000 {
+		import proxyheaders
+	}
+}
+
+https://collabora.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://collabora:9980 {
+		import proxyheaders
+	}
+}
+
+https://backup.dulanic.com {
+	import main
+	import headers
+	reverse_proxy duplicati:8200 {
+		import proxyheaders
+	}
+}
+
+https://adguard.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://192.168.2.225 {
+		import proxyheaders
+	}
+}
+
+https://rss.dulanic.com {
+	import main
+	import headers
+	reverse_proxy freshrss:80 {
+		import proxyheaders
+	}
+}
+
+https://overseerr.dulanic.com {
+	import main
+	import headers
+	reverse_proxy overseerr:5055 {
+		import proxyheaders
+	}
+}
+
+https://photos.dulanic.com {
+	import main
+	import headers
+	reverse_proxy photoprism:2342 {
+		import proxyheaders
+	}
+}
+
+https://sonarr.dulanic.com {
+	import main
+	import headers
+	reverse_proxy sonarr:8989 {
+		import proxyheaders
+	}
+}
+
+https://radarr.dulanic.com {
+	import main
+	import headers
+	reverse_proxy radarr:7878 {
+		import proxyheaders
+	}
+}
+
+https://radarr4k.dulanic.com {
+	import main
+	import headers
+	reverse_proxy radarr4K:7878 {
+		import proxyheaders
+	}
+}
+
+https://qbittorrent.dulanic.com {
+	import main
+	import headers
+	reverse_proxy wireguard:8089 {
+		import proxyheaders
+	}
+}
+
+https://irc.dulanic.com {
+	import main
+	import headers
+	reverse_proxy thelounge:9000 {
+		import proxyheaders
+	}
+}
+
+https://grafana.dulanic.com {
+	import main
+	import headers
+	reverse_proxy grafana:3000 {
+		import proxyheaders
+	}
+}
+
+https://homeassistant.dulanic.com {
+	import main
+	import headers
+	reverse_proxy homeassistant:8123 {
+		import proxyheaders
+	}
+}
+
+https://mongo.dulanic.com {
+	import main
+	import headers
+	reverse_proxy mongoclient:3000 {
+		import proxyheaders
+	}
+}
+
+https://organizr.dulanic.com {
+	import main
+	import headers
+	reverse_proxy organizr:80 {
+		import proxyheaders
+	}
+}
+
+https://paperless.dulanic.com {
+	import main
+	import headers
+	reverse_proxy paperless:8000 {
+		import proxyheaders
+	}
+}
+
+https://pgadmin.dulanic.com {
+	import main
+	import headers
+	reverse_proxy pgadmin:5050 {
+		import proxyheaders
+	}
+}
+
+https://pghero.dulanic.com {
+	import main
+	import headers
+	reverse_proxy pghero:8080 {
+		import proxyheaders
+	}
+}
+
+https://phpmyadmin.dulanic.com {
+	import main
+	import headers
+	reverse_proxy phpmyadmin:80 {
+		import proxyheaders
+	}
+}
+
+https://plex.dulanic.com {
+	import main
+	import headers
+	redir /web /web/
+	reverse_proxy http://192.168.2.155:32400 {
+		import proxyheaders
+	}
+}
+
+https://portainer.dulanic.com {
+	import main
+	import headers
+
+	reverse_proxy portainer:9000 {
+		import proxyheaders
+	}
+}
+
+https://recipes.dulanic.com {
+	handle_path /media/* {
+		root * /media
+		file_server
+	}
+
+	reverse_proxy recipes:8080 {
+		import proxyheaders
+	}
+}
+
+https://tautulli.dulanic.com {
+	import main
+	import headers
+	reverse_proxy tautulli:8181 {
+		import proxyheaders
+	}
+}
+
+https://readarr.dulanic.com {
+	import main
+	import headers
+	reverse_proxy readarr:8787 {
+		import proxyheaders
+	}
+}
+
+https://teslamate.dulanic.com {
+	import main
+	import headers
+	replace stream {
+		"</head>" "<link rel='stylesheet' type='text/css' href='https://dulanic.com/css/teslamate.css'></head>"
+	}
+	reverse_proxy teslamate:4000 {
+		import proxyheaders
+	}
+}
+
+https://prowlarr.dulanic.com {
+	import main
+	import headers
+	reverse_proxy prowlarr:9696 {
+		import proxyheaders
+	}
+}
+
+https://webmin.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://192.168.2.155:10000 {
+		import proxyheaders
+	}
+}
+
+https://wiki.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://wiki:3000 {
+		import proxyheaders
+	}
+}
+
+https://heimdall.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://heimdall:80 {
+		import proxyheaders
+	}
+}
+
+https://ytdl.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://ytdl:8080 {
+		import proxyheaders
+	}
+}
+
+https://redis.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://redis-commander:8081 {
+		import proxyheaders
+	}
+}
+
+https://teslacam.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://teslacamviewer:80 {
+		import proxyheaders
+	}
+}
+
+https://nextcloud.dulanic.com {
+	import main
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	root * /var/www/html
+	php_fastcgi nextcloud:9000
+	file_server
+
+	redir /.well-known/carddav /remote.php/dav 301
+	redir /.well-known/caldav /remote.php/dav 301
+
+	header {
+		# enable HSTS
+		# Strict-Transport-Security max-age=31536000;
+	}
+
+	# .htaccess / data / config / ... shouldn't be accessible from outside
+	@forbidden {
+		path /.htaccess
+		path /data/*
+		path /config/*
+		path /db_structure
+		path /.xml
+		path /README
+		path /3rdparty/*
+		path /lib/*
+		path /templates/*
+		path /occ
+		path /console.php
+	}
+	respond @forbidden 404
+}
