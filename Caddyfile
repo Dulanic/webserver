@@ -84,6 +84,11 @@ https://dulanic.com {
 		root * /www/vid
 		file_server
 	}
+	redir /ytdl /ytdl/
+	handle_path /ytdl/* {
+		root * /www/ytdl
+		file_server
+	}
 	redir /icons /icons/
 	handle_path /icons/* {
 		root * /www/icons
@@ -164,6 +169,17 @@ https://radarr.dulanic.com {
 	import main
 	import headers
 	reverse_proxy radarr:7878 {
+		import proxyheaders
+	}
+}
+
+https://bin.dulanic.com {
+	import main
+	import headers
+	replace stream {
+		"</head>" "<link rel='stylesheet' type='text/css' href='https://dulanic.com/css/bin-dark.css'></head>"
+	}
+	reverse_proxy privatebin:8080 {
 		import proxyheaders
 	}
 }
@@ -363,7 +379,7 @@ https://redis.dulanic.com {
 https://teslacam.dulanic.com {
 	import main
 	import headers
-	reverse_proxy http://teslacamviewer:80 {
+	reverse_proxy http://teslacamviewer {
 		import proxyheaders
 	}
 }
@@ -372,33 +388,45 @@ https://nextcloud.dulanic.com {
 	import main
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Content-Security-Policy "upgrade-insecure-requests"
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
-	root * /var/www/html
-	php_fastcgi nextcloud:9000
-	file_server
-
-	redir /.well-known/carddav /remote.php/dav 301
-	redir /.well-known/caldav /remote.php/dav 301
-
-	header {
-		# enable HSTS
-		# Strict-Transport-Security max-age=31536000;
+	reverse_proxy https://nextcloud:443 {
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+		import proxyheaders
 	}
-
-	# .htaccess / data / config / ... shouldn't be accessible from outside
-	@forbidden {
-		path /.htaccess
-		path /data/*
-		path /config/*
-		path /db_structure
-		path /.xml
-		path /README
-		path /3rdparty/*
-		path /lib/*
-		path /templates/*
-		path /occ
-		path /console.php
-	}
-	respond @forbidden 404
 }
+
+# https://nextcloud.dulanic.com {
+# 	import main
+# 	header {
+# 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+# 		Referrer-Policy "strict-origin-when-cross-origin"
+# 	}
+
+# 	root * /var/www/html
+# 	php_fastcgi nextcloud:9000
+# 	file_server
+
+# 	redir /.well-known/carddav /remote.php/dav 301
+# 	redir /.well-known/caldav /remote.php/dav 301
+
+# 	# .htaccess / data / config / ... shouldn't be accessible from outside
+# 	@forbidden {
+# 		path /.htaccess
+# 		path /data/*
+# 		path /config/*
+# 		path /db_structure
+# 		path /.xml
+# 		path /README
+# 		path /3rdparty/*
+# 		path /lib/*
+# 		path /templates/*
+# 		path /occ
+# 		path /console.php
+# 	}
+# 	respond @forbidden 404
+# }
