@@ -18,8 +18,9 @@
 (headers) {
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-		Content-Security-Policy "upgrade-insecure-requests"
-		X-Frame-Options "SAMEORIGIN"
+		# Content-Security-Policy "upgrade-insecure-requests"
+		Content-Security-Policy: default-src 'self' *.dulanic.com dulanic.cloudflareaccess.com;
+		# X-Frame-Options "SAMEORIGIN"
 		X-Content-Type-Options "nosniff"
 		X-XSS-Protection "1; mode=block"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -69,6 +70,10 @@ https://dulanic.com {
 	import headers
 	root * /www/websites/dulanic.com
 	file_server
+	# reverse_proxy wordpress3:80 {
+	# 	import proxyheaders
+	# }
+
 	redir /img /img/
 	handle_path /img/* {
 		root * /www/img
@@ -101,6 +106,12 @@ https://dulanic.com {
 	}
 }
 
+# https://auth.dulanic.com {
+# 	import main
+# 	import headers
+# 	reverse_proxy auth:9091
+# }
+
 https://code.dulanic.com {
 	import main
 	import headers
@@ -128,6 +139,7 @@ https://backup.dulanic.com {
 https://adguard.dulanic.com {
 	import main
 	import headers
+	# import auth
 	reverse_proxy http://192.168.2.225 {
 		import proxyheaders
 	}
@@ -234,7 +246,7 @@ https://mongo.dulanic.com {
 
 https://organizr.dulanic.com {
 	import main
-	import headers
+	# import headers
 	reverse_proxy organizr:80 {
 		import proxyheaders
 	}
@@ -243,6 +255,9 @@ https://organizr.dulanic.com {
 https://paperless.dulanic.com {
 	import main
 	import headers
+	replace stream {
+		"</head>" "<link rel='stylesheet' type='text/css' href='https://theme-park.dev/css/base/portainer/organizr.css'></head>"
+	}
 	reverse_proxy paperless:8000 {
 		import proxyheaders
 	}
@@ -360,6 +375,22 @@ https://heimdall.dulanic.com {
 	}
 }
 
+https://nzbget.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://nzbget:6789 {
+		import proxyheaders
+	}
+}
+
+https://library.dulanic.com {
+	import main
+	import headers
+	reverse_proxy http://calibre-web:8083 {
+		import proxyheaders
+	}
+}
+
 https://ytdl.dulanic.com {
 	import main
 	import headers
@@ -399,34 +430,3 @@ https://nextcloud.dulanic.com {
 		import proxyheaders
 	}
 }
-
-# https://nextcloud.dulanic.com {
-# 	import main
-# 	header {
-# 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-# 		Referrer-Policy "strict-origin-when-cross-origin"
-# 	}
-
-# 	root * /var/www/html
-# 	php_fastcgi nextcloud:9000
-# 	file_server
-
-# 	redir /.well-known/carddav /remote.php/dav 301
-# 	redir /.well-known/caldav /remote.php/dav 301
-
-# 	# .htaccess / data / config / ... shouldn't be accessible from outside
-# 	@forbidden {
-# 		path /.htaccess
-# 		path /data/*
-# 		path /config/*
-# 		path /db_structure
-# 		path /.xml
-# 		path /README
-# 		path /3rdparty/*
-# 		path /lib/*
-# 		path /templates/*
-# 		path /occ
-# 		path /console.php
-# 	}
-# 	respond @forbidden 404
-# }
