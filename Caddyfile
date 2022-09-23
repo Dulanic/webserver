@@ -1,0 +1,385 @@
+###################
+# Global Settings #
+###################
+{
+	default_sni dulanic.com
+	order replace after encode
+	order webdav before file_server
+}
+
+############
+# Snippets #
+############
+(proxyheaders) {
+	# 2022-04-25: https://www.cloudflare.com/ips-v4 & https://www.cloudflare.com/ips-v6
+	trusted_proxies private_ranges 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+	flush_interval -1
+	# header_up X-Forwarded-For {vars.realip}
+	header_up X-Real-IP {vars.realip}
+}
+(headers) {
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Content-Security-Policy "upgrade-insecure-requests"
+		Content-Security-Policy: default-src 'self' *.dulanic.com dulanic.cloudflareaccess.com;
+		# X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+(main) {
+	tls {$ACMEEMAIL} {
+		ca https://acme-v02.api.letsencrypt.org/directory
+		dns cloudflare {$CLOUDFLARE_API_TOKEN}
+		resolvers 1.0.0.1
+	}
+	log {
+		output file /data/logs/access.log {
+			roll_size 100MiB
+			roll_keep 10
+			roll_keep_for 168h
+		}
+		format filter {
+			wrap json
+			fields {
+				common_log delete
+				request>tls delete
+			}
+		}
+		level info
+	}
+	@tor header Cf-Ipcountry T1
+	vars realip {remote_host}
+	@cf header Cf-Connecting-Ip *
+	vars @cf realip {header.Cf-Connecting-Ip}
+	respond /robots.txt 200 {
+		body "User-agent: *
+Disallow: /
+
+User-agent: AdsBot-Google
+Disallow: /
+
+User-agent: AdsBot-Google-Mobile
+Disallow: /"
+		close
+	}
+}
+(webdav) {
+	basicauth {
+		{$BASICAUTH}
+	}
+}
+
+import subsites
+
+###############
+# dulanic.com #
+###############
+
+
+https://dulanic.com {
+	import main
+	import headers
+	root * /www/websites/dulanic.com
+	file_server
+	# reverse_proxy wordpress3:80 {
+	# 	import proxyheaders
+	# }
+
+	redir /img /img/
+	handle_path /img/* {
+		root * /www/img
+		file_server
+	}
+	redir /files /files/
+	handle_path /files/* {
+		root * /www/files
+		file_server
+	}
+	redir /vid /vid/
+	handle_path /vid/* {
+		root * /www/vid
+		file_server
+	}
+	redir /ytdl /ytdl/
+	handle_path /ytdl/* {
+		root * /www/ytdl
+		file_server
+	}
+	redir /icons /icons/
+	handle_path /icons/* {
+		root * /www/icons
+		file_server
+	}
+	redir /css /css/
+	handle_path /css/* {
+		root * /www/css
+		file_server
+	}
+}
+
+https://nextcloud.dulanic.com {
+	import main
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Content-Security-Policy "upgrade-insecure-requests"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	reverse_proxy https://nextcloud:443 {
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+		import proxyheaders
+	}
+}
+
+https://*.dulanic.com {
+	import main
+	import headers
+	@adguard host adguard.dulanic.com
+	@code host code.dulanic.com
+	@calibre host calibre.dulanic.com
+	@collabora host collabora.dulanic.com
+	@dl host dl.dulanic.com
+	@fireshare host fireshare.dulanic.com
+	@grafana host grafana.dulanic.com
+	@heimdall host heimdall.dulanic.com
+	@homeassistant host homeassistant.dulanic.com
+	@irc host irc.dulanic.com
+	@jellyfin host jellyfin.dulanic.com
+	@library host library.dulanic.com
+	@lidarr host lidarr.dulanic.com
+	@mongo host mongo.dulanic.com
+	@nextcloud host nextcloud.dulanic.com
+	@nzbget host nzbget.dulanic.com
+	@organizr host organizr.dulanic.com
+	@overseerr host overseerr.dulanic.com
+	@paperless host paperless.dulanic.com
+	@pgadmin host pgadmin.dulanic.com
+	@pghero host pghero.dulanic.com
+	@phpmyadmin host phpmyadmin.dulanic.com
+	@photos host photos.dulanic.com
+	@plex host plex.dulanic.com
+	@portainer host portainer.dulanic.com
+	@prowlarr host prowlarr.dulanic.com
+	@qbittorrent host qbittorrent.dulanic.com
+	@radarr host radarr.dulanic.com
+	@radarr4k host radarr4k.dulanic.com
+	@readarr host readarr.dulanic.com
+	@recipes host recipes.dulanic.com
+	@redis host redis.dulanic.com
+	@rss host rss.dulanic.com
+	@sonarr host sonarr.dulanic.com
+	@tautulli host tautulli.dulanic.com
+	@teslacam host teslacam.dulanic.com
+	@teslamate host teslamate.dulanic.com
+	@webmin host webmin.dulanic.com
+	@wiki host wiki.dulanic.com
+	@ytdl host ytdl.dulanic.com
+
+	handle @adguard {
+		reverse_proxy http://192.168.2.225 {
+			import proxyheaders
+		}
+	}
+	handle @code {
+		reverse_proxy http://openvscode-server:3000 {
+			import proxyheaders
+		}
+	}
+	handle @collabora {
+		reverse_proxy http://collabora:9980 {
+			import proxyheaders
+		}
+	}
+	handle @dl {
+		reverse_proxy http://filebrowser {
+			import proxyheaders
+		}
+	}
+	handle @fireshare {
+		reverse_proxy http://fireshare {
+			import proxyheaders
+		}
+	}
+	handle @grafana {
+		reverse_proxy http://grafana:3000 {
+			import proxyheaders
+		}
+	}
+	handle @heimdall {
+		reverse_proxy http://heimdall {
+			import proxyheaders
+		}
+	}
+	handle @jellyfin {
+		reverse_proxy jellyfin:8096 {
+			import proxyheaders
+		}
+	}
+	handle @calibre {
+		reverse_proxy http://calibre-web:8083 {
+			import proxyheaders
+		}
+	}
+	handle @rss {
+		reverse_proxy http://freshrss {
+			import proxyheaders
+		}
+	}
+	handle @teslacam {
+		reverse_proxy http://teslacamviewer {
+			import proxyheaders
+		}
+	}
+	handle @redis {
+		reverse_proxy http://redis-commander:8081 {
+			import proxyheaders
+		}
+	}
+	handle @ytdl {
+		reverse_proxy http://ytdl:8080 {
+			import proxyheaders
+		}
+	}
+	handle @lidarr {
+		reverse_proxy http://lidarr:8686 {
+			import proxyheaders
+		}
+	}
+	handle @nzbget {
+		reverse_proxy http://nzbget:6789 {
+			import proxyheaders
+		}
+	}
+	handle @wiki {
+		reverse_proxy http://wiki:3000 {
+			import proxyheaders
+		}
+	}
+	handle @webmin {
+		reverse_proxy http://192.168.2.155:10000 {
+			import proxyheaders
+		}
+	}
+	handle @prowlarr {
+		reverse_proxy prowlarr:9696 {
+			import proxyheaders
+		}
+	}
+	handle @readarr {
+		reverse_proxy readarr:8787 {
+			import proxyheaders
+		}
+	}
+	handle @radarr4k {
+		reverse_proxy radarr4K:7878 {
+			import proxyheaders
+		}
+	}
+	handle @qbittorrent {
+		reverse_proxy wireguard:8089 {
+			import proxyheaders
+		}
+	}
+	handle @teslamate {
+		replace stream {
+			"</head>" "<link rel='stylesheet' type='text/css' href='https://dulanic.com/css/teslamate.css'></head>"
+		}
+		reverse_proxy teslamate:4000 {
+			import proxyheaders
+		}
+	}
+	handle @tautulli {
+		reverse_proxy tautulli:8181 {
+			import proxyheaders
+		}
+	}
+	handle @radarr {
+		reverse_proxy radarr:7878 {
+			import proxyheaders
+		}
+	}
+	handle @recipes {
+		handle_path /media/* {
+			root * /media
+			file_server
+		}
+
+		reverse_proxy recipes:8080 {
+			import proxyheaders
+		}
+	}
+	handle @portainer {
+		reverse_proxy portainer:9000 {
+			import proxyheaders
+		}
+	}
+	handle @sonarr {
+		reverse_proxy sonarr:8989 {
+			import proxyheaders
+		}
+	}
+	handle @plex {
+		redir /web /web/
+		reverse_proxy http://192.168.2.155:32400 {
+			import proxyheaders
+		}
+	}
+	handle @phpmyadmin {
+		reverse_proxy phpmyadmin:80 {
+			import proxyheaders
+		}
+	}
+	handle @pghero {
+		reverse_proxy pghero:8080 {
+			import proxyheaders
+		}
+	}
+	handle @pgadmin {
+		reverse_proxy pgadmin:5050 {
+			import proxyheaders
+		}
+	}
+	handle @mongo {
+		reverse_proxy mongoclient:3000 {
+			import proxyheaders
+		}
+	}
+	handle @organizr {
+		reverse_proxy organizr:80 {
+			import proxyheaders
+		}
+	}
+	handle @paperless {
+		replace stream {
+			"</head>" "<link rel='stylesheet' type='text/css' href='https://theme-park.dev/css/base/portainer/organizr.css'></head>"
+		}
+		reverse_proxy paperless:8000 {
+			import proxyheaders
+		}
+	}
+	handle @homeassistant {
+		reverse_proxy http://192.168.2.155:8123 {
+			import proxyheaders
+		}
+	}
+	handle @irc {
+		reverse_proxy thelounge:9000 {
+			import proxyheaders
+		}
+	}
+	handle @overseerr {
+		reverse_proxy overseerr:5055 {
+			import proxyheaders
+		}
+	}
+	handle @photos {
+		reverse_proxy photoprism:2342 {
+			import proxyheaders
+		}
+	}
+	abort
+}
