@@ -21,7 +21,7 @@
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		Content-Security-Policy "upgrade-insecure-requests"
-		Content-Security-Policy: default-src 'self' *.dulanic.com dulanic.cloudflareaccess.com;
+		Content-Security-Policy: default-src 'self' *.dulanic.com dulanic.cloudflareaccess.com theme-park.dev;
 		# X-Frame-Options "SAMEORIGIN"
 		X-Content-Type-Options "nosniff"
 		X-XSS-Protection "1; mode=block"
@@ -38,7 +38,7 @@
 		output file /data/logs/access.log {
 			roll_size 100MiB
 			roll_keep 10
-			roll_keep_for 168h
+			roll_keep_for 2160h
 		}
 		format filter {
 			wrap json
@@ -76,7 +76,6 @@ import subsites
 ###############
 # dulanic.com #
 ###############
-
 
 https://dulanic.com {
 	import main
@@ -119,29 +118,22 @@ https://dulanic.com {
 	}
 }
 
-https://nextcloud.dulanic.com {
+https:// {
 	import main
-	header {
-		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-		Content-Security-Policy "upgrade-insecure-requests"
-		Referrer-Policy "strict-origin-when-cross-origin"
-	}
-	reverse_proxy https://nextcloud:443 {
-		transport http {
-			tls
-			tls_insecure_skip_verify
-		}
-		import proxyheaders
-	}
+	import headers
 }
 
 https://*.dulanic.com {
 	import main
 	import headers
 	@adguard host adguard.dulanic.com
+	@autobrr host aut brr.dulanic.com
+	@bw host thisismysecretbitwarden.dulanic.com
 	@code host code.dulanic.com
 	@calibre host calibre.dulanic.com
 	@collabora host collabora.dulanic.com
+	@deemix host deemix.dulanic.com
+	@dmarc host dmarc.dulanic.com
 	@dl host dl.dulanic.com
 	@fireshare host fireshare.dulanic.com
 	@grafana host grafana.dulanic.com
@@ -172,6 +164,7 @@ https://*.dulanic.com {
 	@redis host redis.dulanic.com
 	@rss host rss.dulanic.com
 	@sonarr host sonarr.dulanic.com
+	@sync host sync.dulanic.com
 	@tautulli host tautulli.dulanic.com
 	@teslacam host teslacam.dulanic.com
 	@teslamate host teslamate.dulanic.com
@@ -184,13 +177,39 @@ https://*.dulanic.com {
 			import proxyheaders
 		}
 	}
+	handle @autobrr {
+		reverse_proxy http://192.168.2.155:7474 {
+			import proxyheaders
+		}
+	}
+	handle @bw {
+		reverse_proxy /notifications/hub/negotiate http://bitwarden:80 {
+			import proxyheaders
+		}
+		reverse_proxy /notifications/hub http://bitwarden:3012 {
+			import proxyheaders
+		}
+		reverse_proxy http://bitwarden:80 {
+			import proxyheaders
+		}
+	}
 	handle @code {
-		reverse_proxy http://openvscode-server:3000 {
+		reverse_proxy http://vscode:3000 {
 			import proxyheaders
 		}
 	}
 	handle @collabora {
 		reverse_proxy http://collabora:9980 {
+			import proxyheaders
+		}
+	}
+	handle @deemix {
+		reverse_proxy http://deemix:6595 {
+			import proxyheaders
+		}
+	}
+	handle @dmarc {
+		reverse_proxy http://dmarc-report {
 			import proxyheaders
 		}
 	}
@@ -224,8 +243,22 @@ https://*.dulanic.com {
 			import proxyheaders
 		}
 	}
+	handle @nextcloud {
+		reverse_proxy https://nextcloud:443 {
+			import proxyheaders
+			transport http {
+				tls
+				tls_insecure_skip_verify
+			}
+		}
+	}
 	handle @rss {
 		reverse_proxy http://freshrss {
+			import proxyheaders
+		}
+	}
+	handle @sync {
+		reverse_proxy http://syncthing:8384 {
 			import proxyheaders
 		}
 	}
@@ -245,6 +278,10 @@ https://*.dulanic.com {
 		}
 	}
 	handle @lidarr {
+		replace stream {
+			"</head>" "<link rel='stylesheet' type='text/css' href='https://theme-park.dev/css/base/lidarr/organizr.css'></head>"
+		}
+
 		reverse_proxy http://lidarr:8686 {
 			import proxyheaders
 		}
@@ -280,6 +317,15 @@ https://*.dulanic.com {
 		}
 	}
 	handle @qbittorrent {
+		header {
+			proxy_hide_header "x-webkit-csp";
+			proxy_hide_header "content-security-policy";
+			proxy_hide_header "X-Frame-Options";
+		}
+		replace stream {
+			"</head>" "<link rel='stylesheet' type='text/css' href='https://theme-park.dev/css/base/qbittorrent/organizr.css'></head>"
+		}
+
 		reverse_proxy wireguard:8089 {
 			import proxyheaders
 		}
@@ -313,7 +359,7 @@ https://*.dulanic.com {
 		}
 	}
 	handle @portainer {
-		reverse_proxy portainer:9000 {
+		reverse_proxy http://192.168.2.155:9001 {
 			import proxyheaders
 		}
 	}
@@ -354,9 +400,9 @@ https://*.dulanic.com {
 		}
 	}
 	handle @paperless {
-		replace stream {
-			"</head>" "<link rel='stylesheet' type='text/css' href='https://theme-park.dev/css/base/portainer/organizr.css'></head>"
-		}
+		#		replace stream {
+		#			"</head>" "<link rel='stylesheet' type='text/css' href='https://theme-park.dev/css/base/portainer/organizr.css'></head>"
+		#		}
 		reverse_proxy paperless:8000 {
 			import proxyheaders
 		}
