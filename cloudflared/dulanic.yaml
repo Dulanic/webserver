@@ -3,8 +3,18 @@ credentials-file: /etc/cloudflared/9d7aaf41-d581-4c47-b3c2-09632edca0ba.json
 
 ingress:
   - hostname: ssh.dulanic.com
-    service: ssh://192.168.2.155:22
+    service: ssh://localhost:1091
   - hostname: dulanic.com
+    service: https://192.168.2.155:443
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+  - hostname: acsigning.com
+    service: https://192.168.2.155:443
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+  - hostname: lisaphansen.com
     service: https://192.168.2.155:443
     originRequest:
       connectTimeout: 10s
