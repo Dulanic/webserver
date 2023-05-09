@@ -9,16 +9,6 @@ ingress:
     originRequest:
       connectTimeout: 10s
       noTLSVerify: true
-  - hostname: acsigning.com
-    service: https://192.168.2.155:443
-    originRequest:
-      connectTimeout: 10s
-      noTLSVerify: true
-  - hostname: lisaphansen.com
-    service: https://192.168.2.155:443
-    originRequest:
-      connectTimeout: 10s
-      noTLSVerify: true
   - hostname: "*.dulanic.com"
     service: https://192.168.2.155:443
     originRequest:
