@@ -26,6 +26,7 @@
 		X-Content-Type-Options "nosniff"
 		X-XSS-Protection "1; mode=block"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Robots-Tag "none"
 	}
 }
 (main) {
@@ -35,7 +36,7 @@
 		resolvers 1.0.0.1
 	}
 	log {
-		output file /data/logs/access.log {
+		output file /data/logs/error.log {
 			roll_size 100MiB
 			roll_keep 10
 			roll_keep_for 2160h
@@ -47,7 +48,7 @@
 				request>tls delete
 			}
 		}
-		level info
+		level error
 	}
 	@tor header Cf-Ipcountry T1
 	vars realip {remote_host}
@@ -101,6 +102,11 @@ https://dulanic.com {
 		root * /www/vid
 		file_server
 	}
+	redir /txt /txt/
+	handle_path /txt/* {
+		root * /www/txt
+		file_server
+	}
 	redir /ytdl /ytdl/
 	handle_path /ytdl/* {
 		root * /www/ytdl
@@ -118,6 +124,22 @@ https://dulanic.com {
 	}
 }
 
+https://nextcloud.dulanic.com {
+	import main
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Content-Security-Policy "upgrade-insecure-requests"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	reverse_proxy https://nextcloud:443 {
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+		import proxyheaders
+	}
+}
+
 https:// {
 	import main
 	import headers
@@ -129,15 +151,21 @@ https://*.dulanic.com {
 	@adguard host adguard.dulanic.com
 	@autobrr host aut brr.dulanic.com
 	@bw host thisismysecretbitwarden.dulanic.com
+	@cgpt host gpt.dulanic.com
 	@code host code.dulanic.com
 	@calibre host calibre.dulanic.com
 	@collabora host collabora.dulanic.com
+	@webtop host webtop.dulanic.com
 	@deemix host deemix.dulanic.com
+	@derbynet host derby.dulanic.com
 	@dmarc host dmarc.dulanic.com
 	@dl host dl.dulanic.com
+	@fb host fb.dulanic.com
 	@fireshare host fireshare.dulanic.com
+	@epic host epic.dulanic.com
 	@grafana host grafana.dulanic.com
 	@heimdall host heimdall.dulanic.com
+	@home host home.dulanic.com
 	@homeassistant host homeassistant.dulanic.com
 	@irc host irc.dulanic.com
 	@jellyfin host jellyfin.dulanic.com
@@ -193,6 +221,11 @@ https://*.dulanic.com {
 			import proxyheaders
 		}
 	}
+	handle @cgpt {
+		reverse_proxy http://192.168.2.155:8501 {
+			import proxyheaders
+		}
+	}
 	handle @code {
 		reverse_proxy http://vscode:3000 {
 			import proxyheaders
@@ -203,8 +236,18 @@ https://*.dulanic.com {
 			import proxyheaders
 		}
 	}
+	handle @webtop {
+		reverse_proxy http://192.168.2.155:3000 {
+			import proxyheaders
+		}
+	}
 	handle @deemix {
 		reverse_proxy http://deemix:6595 {
+			import proxyheaders
+		}
+	}
+	handle @derbynet {
+		reverse_proxy http://derbynet:80 {
 			import proxyheaders
 		}
 	}
@@ -214,10 +257,21 @@ https://*.dulanic.com {
 		}
 	}
 	handle @dl {
+		reverse_proxy http://jdownloader:5800 {
+			import proxyheaders
+		}
+	}
+	handle @fb {
 		reverse_proxy http://filebrowser {
 			import proxyheaders
 		}
 	}
+	handle @epic {
+		reverse_proxy http://epic:3000 {
+			import proxyheaders
+		}
+	}
+
 	handle @fireshare {
 		reverse_proxy http://fireshare {
 			import proxyheaders
@@ -233,6 +287,11 @@ https://*.dulanic.com {
 			import proxyheaders
 		}
 	}
+	handle @home {
+		reverse_proxy http://homepage:3000 {
+			import proxyheaders
+		}
+	}
 	handle @jellyfin {
 		reverse_proxy jellyfin:8096 {
 			import proxyheaders
@@ -244,8 +303,11 @@ https://*.dulanic.com {
 		}
 	}
 	handle @nextcloud {
+		redir /.well-known/carddav /remote.php/dav 301
+		redir /.well-known/caldav /remote.php/dav 301
 		reverse_proxy https://nextcloud:443 {
 			import proxyheaders
+
 			transport http {
 				tls
 				tls_insecure_skip_verify
@@ -273,9 +335,7 @@ https://*.dulanic.com {
 		}
 	}
 	handle @ytdl {
-		reverse_proxy http://ytdl:8080 {
-			import proxyheaders
-		}
+		redir https://www.youtube.com/watch?v=crbFmpezO4A
 	}
 	handle @lidarr {
 		replace stream {
@@ -427,5 +487,6 @@ https://*.dulanic.com {
 			import proxyheaders
 		}
 	}
-	abort
-}
+	handle {
+		redir https://www.youtube.com/watch?v=crbFmpezO4A 302
+	}
